@@ -9,14 +9,28 @@ import {
 import InfoBox from './InfoBox';
 import Map from './Map'
 import './App.css';
+import Table from './Table';
+import { sortData } from './util';
+import LineGraph from './LineGraph';
+
 
 
 function App() {
   const [countries, setCountries] =  useState([]);
   const [country, setCountry] = useState('worldwide')
+  const [countryInfo, setCountryInfo] = useState({})
+  const [tableData, setTableData] = useState([]);
 // STATE = How to write a variable in React
 
 // https://disease.sh/v3/covid-19/countries
+
+  useEffect (() => {
+    fetch("https://disease.sh/v3/covid-19/all")
+    .then(response => response.json())
+    .then(data => {
+      setCountryInfo(data);
+    });
+  }, []);
 
 // USEEFFECT = Runs a piece of code based on a given condition
 
@@ -34,6 +48,9 @@ function App() {
             value: country.countryInfo.iso2 // UK, USA, FR
           }));
 
+          const sortedData = sortData(data);
+          setTableData(sortedData);
+          //Data returned in table will come back by case data and not in alphabetical order
           setCountries(countries);
       });
     };
@@ -45,12 +62,24 @@ function App() {
   const onCountryChange = async (event) => {
     // using async ?
     const countryCode = event.target.value;
-
       // console.log("AYE >>>>>", countryCode);
-
       setCountry(countryCode);
-      
-  } // grabs selected value from the dropdown menu and sets it to the country selected
+    
+    const url = countryCode === 'worldwide'
+      ? "https://disease.sh/v3/covid-19/all"
+      : `https://disease.sh/v3/covid-19/countries/${countryCode}`;
+
+    await fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      setCountry(countryCode);
+      // All of the data from the country response
+      setCountryInfo(data);
+    })
+
+  }; // grabs selected value from the dropdown menu and sets it to the country selected
+
+  console.log("COUNTRY INFO >>>>>>>", countryInfo)
 
   return (
     <div className="app">
@@ -81,9 +110,21 @@ function App() {
         </div>
         
         <div className="app__stats">
-          <InfoBox title="Coronavirus Cases" cases={20} total={`2,000`} />
-          <InfoBox title="Recovered" cases={20} total={500}/>
-          <InfoBox title="Deaths" cases={20} total={`44,000`}/>
+            <InfoBox 
+              title="Coronavirus Cases" 
+              cases={countryInfo.todayCases} 
+              total={countryInfo.cases} 
+            />
+            <InfoBox 
+              title="Recovered" 
+              cases={countryInfo.todayRecovered} 
+              total={countryInfo.recovered}
+            />
+            <InfoBox 
+              title="Deaths" 
+              cases={countryInfo.todayDeaths} 
+              total={countryInfo.deaths}
+            />
         </div>
         
         <Map />
@@ -91,10 +132,10 @@ function App() {
       </div>
       <Card className="app__right">
         <CardContent>
-          {/* Table */}
           <h3>Live Cases by Country</h3>
-          {/* Graph */}
+          <Table countries={ tableData } />
           <h3>Worldwide New Cases</h3>
+          <LineGraph />
         </CardContent>
 
       </Card>
